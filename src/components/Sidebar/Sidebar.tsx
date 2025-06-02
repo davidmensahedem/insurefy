@@ -1,6 +1,7 @@
 import { useSidebarOpen } from '@/store/appStore';
 import { Calculator, Database, FileText, Settings, Users, Zap } from 'lucide-react';
 import React from 'react';
+import { DebugInfo } from '../Debug/DebugInfo';
 import ConnectionStatus from './ConnectionStatus';
 import LLMSettings from './LLMSettings';
 import ToolsList from './ToolsList';
@@ -104,6 +105,14 @@ const Sidebar: React.FC = () => {
                                 </p>
                             </div>
                         </div>
+                    </section>
+
+                    {/* Debug info for troubleshooting */}
+                    <section>
+                        <h2 className="text-sm font-medium text-gray-700 mb-3">
+                            Debug Info
+                        </h2>
+                        <DebugInfo />
                     </section>
                 </div>
             </div>
