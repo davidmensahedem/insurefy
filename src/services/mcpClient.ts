@@ -218,7 +218,7 @@ export class InsuranceMCPClient {
       // If endpoint URL format
       if (parsed.endpoint && parsed.endpoint.includes('sessionId=')) {
         try {
-          const url = new URL(parsed.endpoint);
+          const url = new URL(parsed.endpoint, this.serverUrl);
           return url.searchParams.get('sessionId');
         } catch (e) {
           console.warn('Failed to parse endpoint URL:', e);
@@ -228,8 +228,27 @@ export class InsuranceMCPClient {
     } catch (err) {
       console.log('📝 SSE message (non-JSON):', data);
       
-      // Handle plain text - look for UUID patterns
+      // Handle plain text - check if it's a URL path with sessionId
       const text = data.trim();
+      
+      // Check for URL path format like "/messages?sessionId=uuid"
+      if (text.includes('sessionId=')) {
+        try {
+          const url = new URL(text, this.serverUrl);
+          const sessionId = url.searchParams.get('sessionId');
+          if (sessionId) {
+            console.log('🎯 Found session ID in URL path:', sessionId);
+            return sessionId;
+          }
+        } catch (e) {
+          // If URL parsing fails, try regex extraction
+          const sessionMatch = text.match(/sessionId=([a-f0-9-]+)/i);
+          if (sessionMatch) {
+            console.log('🎯 Found session ID via regex:', sessionMatch[1]);
+            return sessionMatch[1];
+          }
+        }
+      }
       
       // Look for UUID pattern (8-4-4-4-12 characters)
       const uuidMatch = text.match(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i);
