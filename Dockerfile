@@ -22,8 +22,14 @@ RUN npm run build
 # Verify build output exists
 RUN ls -la dist/
 
+# Copy our custom server script
+COPY server.py .
+
+# Make server script executable
+RUN chmod +x server.py
+
 # Expose port 3000
 EXPOSE 3000
 
-# Simple Python server for static files
-CMD ["sh", "-c", "cd dist && python3 -m http.server 3000"] 
+# Use our custom Python server that handles React Router
+CMD ["python3", "server.py"] 
