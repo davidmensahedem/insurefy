@@ -1,6 +1,9 @@
 # Simple single-stage Dockerfile for React app
 FROM node:18-alpine
 
+# Install curl and python for serving
+RUN apk add --no-cache curl python3
+
 # Set working directory
 WORKDIR /app
 
@@ -10,17 +13,17 @@ COPY package*.json ./
 # Install ALL dependencies (including dev deps needed for build)
 RUN npm ci
 
-# Install serve globally for static hosting
-RUN npm install -g serve
-
 # Copy source code
 COPY . .
 
 # Build the application
 RUN npm run build
 
+# Verify build output exists
+RUN ls -la dist/
+
 # Expose port 3000
 EXPOSE 3000
 
-# Serve the built app on port 3000
-CMD ["serve", "-s", "dist", "-l", "3000"] 
+# Simple Python server for static files
+CMD ["sh", "-c", "cd dist && python3 -m http.server 3000"] 
