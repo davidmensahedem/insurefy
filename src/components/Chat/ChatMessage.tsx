@@ -11,19 +11,6 @@ interface ChatMessageProps {
 const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
     const isUser = message.role === 'user';
 
-    // Debug logging
-    React.useEffect(() => {
-        if (!isUser) {
-            console.log('🔄 ChatMessage render:', {
-                id: message.id,
-                isLoading: message.isLoading,
-                hasContent: !!message.content,
-                contentLength: message.content?.length || 0,
-                hasToolCalls: !!(message.toolCalls && message.toolCalls.length > 0)
-            });
-        }
-    }, [message.isLoading, message.content, message.toolCalls, isUser, message.id]);
-
     return (
         <div className={`message-bubble ${isUser ? 'message-user' : 'message-assistant'} fade-in`}>
             <div className="flex items-start space-x-3">

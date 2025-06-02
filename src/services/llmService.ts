@@ -1,29 +1,23 @@
 import type { ChatMessage, LLMConfig, ToolCall } from '@/types/insurance';
 import { mcpClient } from './mcpClient';
 
-// Ultra-lightweight insurance assistant - NO AI, direct tool routing
+// Simplified MCP-only service - no LLM processing
 export class InsuranceLLMService {
-  private isInitialized = true; // Always ready
+  private isInitialized = true;
   private currentConfig: LLMConfig = {
-    model: 'direct-routing',
+    model: 'direct-mcp-routing',
     temperature: 0,
     maxTokens: 100,
     topP: 1
   };
 
   async initialize(_config?: Partial<LLMConfig>): Promise<void> {
-    console.log('✅ Direct routing assistant ready (no AI loading)');
+    console.log('✅ Direct MCP routing ready (no LLM)');
     return Promise.resolve();
   }
 
   async generateResponse(messages: ChatMessage[]): Promise<string> {
-    const lastMessage = messages[messages.length - 1]?.content.toLowerCase() || '';
-    
-    if (lastMessage.includes('hello') || lastMessage.includes('hi')) {
-      return "Hello! I can help you get insurance back office data. Try: 'Get back office data'";
-    }
-    
-    return "I can help with insurance data. Ask me to 'Get back office data' or similar.";
+    return "Direct MCP tool routing active. Try: 'Get back office data'";
   }
 
   async processWithTools(
@@ -40,7 +34,7 @@ export class InsuranceLLMService {
         lowerMessage.includes('order') ||
         lowerMessage.includes('transaction')) {
       
-      console.log('🎯 Detected back office query, calling tool...');
+      console.log('🎯 Direct MCP call for back office data...');
       
       if (mcpClient.isConnected()) {
         try {
@@ -60,15 +54,23 @@ export class InsuranceLLMService {
           toolCall.result = result;
           toolCalls.push(toolCall);
           
+          // Format the response based on the actual data received
+          let responseText = "✅ Successfully retrieved data from MCP server!";
+          
+          if (result && result.data) {
+            const dataCount = Array.isArray(result.data) ? result.data.length : 1;
+            responseText = `✅ Retrieved ${dataCount} records from insurance back office system.`;
+          }
+          
           return {
-            response: "✅ Successfully retrieved back office data from your insurance server!",
+            response: responseText,
             toolCalls
           };
           
         } catch (error) {
-          console.error('❌ Tool call failed:', error);
+          console.error('❌ MCP tool call failed:', error);
           return {
-            response: "❌ Failed to get data. Please check your MCP server connection.",
+            response: "❌ Failed to retrieve data from MCP server. Please check the connection.",
             toolCalls: []
           };
         }
@@ -80,17 +82,9 @@ export class InsuranceLLMService {
       }
     }
     
-    // Greeting
-    if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
-      return {
-        response: "👋 Hello! I can help you get insurance back office data. Try asking: 'Get back office data'",
-        toolCalls: []
-      };
-    }
-    
-    // Default response
+    // Default for other queries
     return {
-      response: "I can help you get insurance data. Try: 'Get back office data' or 'Show recent orders'",
+      response: "I can help you get insurance data from the MCP server. Try: 'Get back office data' or 'Show recent orders'",
       toolCalls: []
     };
   }

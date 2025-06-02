@@ -90,10 +90,21 @@ export const useAppStore = create<AppStore>()(
       updateMessage: (id, updates) =>
         set((state) => {
           console.log('📝 Updating message:', { id, updates });
+          console.log('📝 Current messages:', state.messages.map(m => ({ id: m.id, role: m.role, isLoading: m.isLoading })));
+          
+          const messageIndex = state.messages.findIndex(msg => msg.id === id);
+          if (messageIndex === -1) {
+            console.error('❌ Message not found for update:', id);
+            return state; // Return unchanged state if message not found
+          }
+          
           const newMessages = state.messages.map((msg) =>
             msg.id === id ? { ...msg, ...updates } : msg
           );
-          console.log('📝 Message updated, new state:', newMessages.find(m => m.id === id));
+          
+          const updatedMessage = newMessages.find(m => m.id === id);
+          console.log('📝 Message updated successfully:', updatedMessage);
+          
           return { messages: newMessages };
         }),
 
