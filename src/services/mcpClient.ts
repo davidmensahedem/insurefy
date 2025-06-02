@@ -432,7 +432,75 @@ export class InsuranceMCPClient {
       };
       
       console.log('📤 Request body:', JSON.stringify(requestBody, null, 2));
+
+      // Set up promise to wait for SSE response
+      const toolCallPromise = new Promise((resolve, reject) => {
+        let responseTimeout: NodeJS.Timeout;
+        
+        // Listen for tool response via SSE
+        const handleSSEMessage = (event: MessageEvent) => {
+          try {
+            console.log('🎧 SSE event during tool call:', event.data);
+            
+            let data;
+            try {
+              data = JSON.parse(event.data);
+            } catch (e) {
+              console.log('📝 Non-JSON SSE message:', event.data);
+              return; // Skip non-JSON messages
+            }
+            
+            // Check if this is a tool response
+            if (data.jsonrpc === '2.0' && data.id === requestBody.id) {
+              console.log('✅ Received tool response via SSE:', data);
+              
+              // Clean up
+              clearTimeout(responseTimeout);
+              this.eventSource?.removeEventListener('message', handleSSEMessage);
+              
+              // Handle MCP error responses
+              if (data.error) {
+                const errorMsg = data.error.message || data.error.code || 'Unknown MCP error';
+                console.error('❌ MCP Error:', data.error);
+                reject(new Error(`MCP Error: ${errorMsg}`));
+                return;
+              }
+              
+              // Extract content from MCP response
+              if (data.result && data.result.content && Array.isArray(data.result.content) && data.result.content.length > 0) {
+                const content = data.result.content[0];
+                if (content.type === 'text' && content.text) {
+                  try {
+                    const parsedData = JSON.parse(content.text);
+                    resolve(parsedData);
+                  } catch (parseError) {
+                    console.warn('Failed to parse response as JSON, returning raw text:', parseError);
+                    resolve(content.text);
+                  }
+                  return;
+                }
+              }
+              
+              // Return raw result if no content structure
+              resolve(data.result || data);
+            }
+          } catch (error) {
+            console.error('❌ Error processing SSE message:', error);
+          }
+        };
+        
+        // Add SSE listener
+        this.eventSource?.addEventListener('message', handleSSEMessage);
+        
+        // Set up timeout
+        responseTimeout = setTimeout(() => {
+          console.log('⏰ Tool call timeout');
+          this.eventSource?.removeEventListener('message', handleSSEMessage);
+          reject(new Error('Tool call timeout - no response received via SSE'));
+        }, 30000); // 30 second timeout
+      });
       
+      // Send the HTTP request (should get "Accepted")
       const response = await fetch(messagesUrl, {
         method: 'POST',
         headers: {
@@ -449,59 +517,21 @@ export class InsuranceMCPClient {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ HTTP Error:', response.status, response.statusText, errorText);
-        
-        // Handle specific HTTP errors
-        if (response.status === 400) {
-          throw new Error(`Bad Request: ${errorText}`);
-        } else if (response.status === 404) {
-          throw new Error(`Endpoint not found: ${messagesUrl}`);
-        } else if (response.status >= 500) {
-          throw new Error(`Server error (${response.status}): ${errorText}`);
-        } else {
-          throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
-        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
       }
 
-      // Get response text first to log it
+      // Get response text (should be "Accepted")
       const responseText = await response.text();
-      console.log('📡 Raw response text:', responseText);
-      console.log('📡 Response length:', responseText.length);
-      console.log('📡 First 200 chars:', responseText.substring(0, 200));
-
-      // Try to parse as JSON
-      let result;
-      try {
-        result = JSON.parse(responseText);
-        console.log('✅ Successfully parsed JSON:', result);
-      } catch (parseError) {
-        const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
-        console.error('❌ JSON Parse Error:', parseError);
-        console.error('❌ Failed to parse response as JSON. Raw response:', responseText);
-        throw new Error(`Invalid JSON response: ${errorMessage}. Response: ${responseText.substring(0, 500)}`);
-      }
+      console.log('📡 HTTP response:', responseText);
       
-      // Handle MCP error responses
-      if (result.error) {
-        const errorMsg = result.error.message || result.error.code || 'Unknown MCP error';
-        console.error('❌ MCP Error:', result.error);
-        throw new Error(`MCP Error: ${errorMsg}`);
+      if (responseText.trim() === 'Accepted') {
+        console.log('✅ Request accepted, waiting for SSE response...');
+        // Wait for actual response via SSE
+        return await toolCallPromise;
+      } else {
+        console.warn('⚠️ Unexpected HTTP response, still waiting for SSE...');
+        return await toolCallPromise;
       }
-      
-      // Extract content from MCP response
-      if (result.result && result.result.content && Array.isArray(result.result.content) && result.result.content.length > 0) {
-        const content = result.result.content[0];
-        if (content.type === 'text' && content.text) {
-          try {
-            return JSON.parse(content.text);
-          } catch (parseError) {
-            console.warn('Failed to parse response as JSON, returning raw text:', parseError);
-            return content.text;
-          }
-        }
-      }
-      
-      // Return raw result if no content structure
-      return result.result || result;
       
     } catch (error) {
       console.error('❌ MCP tool call failed:', error);
