@@ -422,15 +422,12 @@ export class InsuranceMCPClient {
       console.log('📡 Calling:', messagesUrl);
       
       const requestBody = {
+        jsonrpc: '2.0',
+        id: Date.now(),
         method: 'tools/call',
-        data: {
-          jsonrpc: '2.0',
-          id: Date.now(),
-          method: 'tools/call',
-          params: {
-            name: toolCall.name,
-            arguments: toolCall.parameters
-          }
+        params: {
+          name: toolCall.name,
+          arguments: toolCall.parameters
         }
       };
       
