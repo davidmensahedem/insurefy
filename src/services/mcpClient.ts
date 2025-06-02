@@ -153,11 +153,8 @@ export class InsuranceMCPClient {
           this.sessionId = sessionId;
           this.connected = true;
           
-          // Close SSE connection after getting session ID
-          setTimeout(() => {
-            this.eventSource?.close();
-            resolveOnce(true);
-          }, 100);
+          // Don't close SSE connection - keep it open for session lifetime
+          resolveOnce(true);
         } else {
           console.log('⚠️ No session ID found in endpoint event');
           console.log('  - Tried to extract from:', JSON.stringify(event.data));
@@ -180,11 +177,8 @@ export class InsuranceMCPClient {
           this.sessionId = sessionId;
           this.connected = true;
           
-          // Close SSE connection after getting session ID
-          setTimeout(() => {
-            this.eventSource?.close();
-            resolveOnce(true);
-          }, 100);
+          // Don't close SSE connection - keep it open for session lifetime
+          resolveOnce(true);
         } else {
           console.log('⚠️ No session ID found in message, waiting for more...');
           console.log('  - Tried to extract from:', JSON.stringify(event.data));
@@ -322,18 +316,21 @@ export class InsuranceMCPClient {
   }
 
   async disconnect(): Promise<void> {
+    console.log('🔌 Manually disconnecting from MCP server...');
     this.cleanup();
     this.reconnectAttempts = 0;
     console.log('📴 Disconnected from MCP server');
   }
 
   private cleanup(): void {
+    console.log('🧹 Cleaning up MCP client...');
     this.connected = false;
     this.sessionId = null;
     this.capabilities = null;
     
     if (this.eventSource) {
       if (this.eventSource.readyState !== EventSource.CLOSED) {
+        console.log('🔒 Closing SSE connection...');
         this.eventSource.close();
       }
       this.eventSource = null;
