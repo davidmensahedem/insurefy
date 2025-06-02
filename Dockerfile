@@ -19,8 +19,8 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Expose port 3000
-EXPOSE 3000
+# Expose port 80
+EXPOSE 80
 
-# Serve the built app
-CMD ["serve", "-s", "dist", "-l", "3000"] 
+# Serve the built app on port 80
+CMD ["serve", "-s", "dist", "-l", "80"] 
