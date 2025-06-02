@@ -18,6 +18,13 @@ class ReactHandler(http.server.SimpleHTTPRequestHandler):
         self.path = '/index.html'
         return super().do_GET()
 
+    def send_header(self, key, value):
+        super().send_header(key, value)
+        self.send_header('Access-Control-Allow-Origin', 'http://e4kcws8w8488cgk0scsko44w.207.180.196.252.sslip.io')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, X-Requested-With, Accept, Cache-Control')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        self.send_header('Access-Control-Allow-Credentials', 'true')
+
 if __name__ == '__main__':
     PORT = 3000
     

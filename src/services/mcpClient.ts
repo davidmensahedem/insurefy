@@ -6,7 +6,13 @@ import type {
 // Get server URL from environment variables or fallback to default
 const getServerUrl = () => {
   // In production, Vite will replace import.meta.env with actual values
-  return import.meta.env.VITE_MCP_SERVER_URL || 'http://gc00ok8w8owcg0ocs44woskk.207.180.196.252.sslip.io';
+  const envUrl = import.meta.env.VITE_MCP_SERVER_URL;
+  const fallbackUrl = 'http://gc00ok8w8owcg0ocs44woskk.207.180.196.252.sslip.io';
+  
+  console.log('🌍 Environment:', import.meta.env.VITE_APP_ENVIRONMENT || 'development');
+  console.log('🔗 Server URL from env:', envUrl);
+  
+  return envUrl || fallbackUrl;
 };
 
 // Enhanced MCP Client with better error handling and reconnection
@@ -22,6 +28,7 @@ export class InsuranceMCPClient {
 
   constructor(private serverUrl: string = getServerUrl()) {
     console.log('🏗️ MCP Client initialized for:', this.serverUrl);
+    console.log('🌍 Mode:', import.meta.env.MODE);
     console.log('🌍 Environment:', import.meta.env.VITE_APP_ENVIRONMENT || 'development');
   }
 
