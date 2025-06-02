@@ -450,28 +450,59 @@ export class InsuranceMCPClient {
               return; // Skip non-JSON messages
             }
             
-            // Check if this is a tool response
+            console.log('🔍 Parsed SSE data structure:', JSON.stringify(data, null, 2));
+            
+            // Check multiple possible response formats
+            let isToolResponse = false;
+            let responseData = null;
+            
+            // Format 1: Direct JSON-RPC response with matching ID
             if (data.jsonrpc === '2.0' && data.id === requestBody.id) {
-              console.log('✅ Received tool response via SSE:', data);
+              console.log('✅ Found JSON-RPC response with matching ID');
+              isToolResponse = true;
+              responseData = data;
+            }
+            // Format 2: MCP result format with content array
+            else if (data.result && data.result.content) {
+              console.log('✅ Found MCP result format');
+              isToolResponse = true;
+              responseData = data;
+            }
+            // Format 3: Direct result content
+            else if (data.content && Array.isArray(data.content)) {
+              console.log('✅ Found direct content array');
+              isToolResponse = true;
+              responseData = { result: data };
+            }
+            // Format 4: Any response that looks like tool output
+            else if (data.message || data.code || data.data || data.results) {
+              console.log('✅ Found tool-like response format');
+              isToolResponse = true;
+              responseData = { result: { content: [{ type: 'text', text: JSON.stringify(data) }] } };
+            }
+            
+            if (isToolResponse) {
+              console.log('🎉 Processing tool response:', responseData);
               
               // Clean up
               clearTimeout(responseTimeout);
               this.eventSource?.removeEventListener('message', handleSSEMessage);
               
               // Handle MCP error responses
-              if (data.error) {
-                const errorMsg = data.error.message || data.error.code || 'Unknown MCP error';
-                console.error('❌ MCP Error:', data.error);
+              if (responseData.error) {
+                const errorMsg = responseData.error.message || responseData.error.code || 'Unknown MCP error';
+                console.error('❌ MCP Error:', responseData.error);
                 reject(new Error(`MCP Error: ${errorMsg}`));
                 return;
               }
               
               // Extract content from MCP response
-              if (data.result && data.result.content && Array.isArray(data.result.content) && data.result.content.length > 0) {
-                const content = data.result.content[0];
+              if (responseData.result && responseData.result.content && Array.isArray(responseData.result.content) && responseData.result.content.length > 0) {
+                const content = responseData.result.content[0];
                 if (content.type === 'text' && content.text) {
                   try {
                     const parsedData = JSON.parse(content.text);
+                    console.log('✅ Successfully parsed tool response data');
                     resolve(parsedData);
                   } catch (parseError) {
                     console.warn('Failed to parse response as JSON, returning raw text:', parseError);
@@ -482,7 +513,10 @@ export class InsuranceMCPClient {
               }
               
               // Return raw result if no content structure
-              resolve(data.result || data);
+              console.log('✅ Returning raw response data');
+              resolve(responseData.result || responseData);
+            } else {
+              console.log('ℹ️ SSE message does not match tool response format, ignoring');
             }
           } catch (error) {
             console.error('❌ Error processing SSE message:', error);
