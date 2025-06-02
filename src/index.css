@@ -1,0 +1,221 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #f8fafc;
+  }
+  
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+      monospace;
+  }
+}
+
+@layer components {
+  .chat-container {
+    @apply h-screen flex flex-col bg-white;
+  }
+  
+  .chat-header {
+    @apply flex items-center justify-between p-4 border-b bg-white shadow-sm;
+  }
+  
+  .chat-messages {
+    @apply flex-1 overflow-y-auto p-4 space-y-4;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+  }
+  
+  .chat-messages::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .chat-messages::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  
+  .chat-messages::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+  
+  .chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+  
+  .message-bubble {
+    @apply max-w-3xl mx-auto;
+  }
+  
+  .message-user {
+    @apply flex justify-end;
+  }
+  
+  .message-assistant {
+    @apply flex justify-start;
+  }
+  
+  .message-content {
+    @apply px-4 py-3 rounded-lg text-sm leading-relaxed;
+  }
+  
+  .message-user .message-content {
+    @apply bg-blue-600 text-white;
+  }
+  
+  .message-assistant .message-content {
+    @apply bg-gray-100 text-gray-900 border;
+  }
+  
+  .chat-input-container {
+    @apply border-t bg-white p-4;
+  }
+  
+  .chat-input {
+    @apply w-full max-w-3xl mx-auto flex items-end space-x-3;
+  }
+  
+  .sidebar {
+    @apply w-80 bg-gray-50 border-r flex flex-col h-full;
+  }
+  
+  .sidebar-header {
+    @apply p-4 border-b bg-white;
+  }
+  
+  .sidebar-content {
+    @apply flex-1 overflow-y-auto p-4;
+  }
+  
+  .connection-indicator {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .connection-indicator.connected {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .connection-indicator.connecting {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  
+  .connection-indicator.disconnected {
+    @apply bg-gray-100 text-gray-800;
+  }
+  
+  .connection-indicator.error {
+    @apply bg-red-100 text-red-800;
+  }
+  
+  .tool-call-card {
+    @apply mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm;
+  }
+  
+  .loading-dots {
+    @apply inline-flex space-x-1;
+  }
+  
+  .loading-dot {
+    @apply w-2 h-2 bg-gray-400 rounded-full animate-pulse;
+  }
+  
+  .loading-dot:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  
+  .loading-dot:nth-child(2) {
+    animation-delay: 150ms;
+  }
+  
+  .loading-dot:nth-child(3) {
+    animation-delay: 300ms;
+  }
+  
+  .floating-button {
+    @apply fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-colors;
+  }
+}
+
+@layer utilities {
+  .fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  .slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .bounce-in {
+    animation: bounceIn 0.5s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Custom scrollbar for webkit browsers */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+} 
