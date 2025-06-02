@@ -16,7 +16,7 @@ export class InsuranceLLMService {
     return Promise.resolve();
   }
 
-  async generateResponse(messages: ChatMessage[]): Promise<string> {
+  async generateResponse(_messages: ChatMessage[]): Promise<string> {
     return "Direct MCP tool routing active. Try: 'Get back office data'";
   }
 
