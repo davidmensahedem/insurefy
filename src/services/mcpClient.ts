@@ -443,6 +443,9 @@ export class InsuranceMCPClient {
         body: JSON.stringify(requestBody)
       });
 
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ HTTP Error:', response.status, response.statusText, errorText);
@@ -459,8 +462,23 @@ export class InsuranceMCPClient {
         }
       }
 
-      const result = await response.json();
-      console.log('✅ MCP response received:', result);
+      // Get response text first to log it
+      const responseText = await response.text();
+      console.log('📡 Raw response text:', responseText);
+      console.log('📡 Response length:', responseText.length);
+      console.log('📡 First 200 chars:', responseText.substring(0, 200));
+
+      // Try to parse as JSON
+      let result;
+      try {
+        result = JSON.parse(responseText);
+        console.log('✅ Successfully parsed JSON:', result);
+      } catch (parseError) {
+        const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+        console.error('❌ JSON Parse Error:', parseError);
+        console.error('❌ Failed to parse response as JSON. Raw response:', responseText);
+        throw new Error(`Invalid JSON response: ${errorMessage}. Response: ${responseText.substring(0, 500)}`);
+      }
       
       // Handle MCP error responses
       if (result.error) {
