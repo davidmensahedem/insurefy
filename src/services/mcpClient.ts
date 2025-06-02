@@ -140,8 +140,38 @@ export class InsuranceMCPClient {
         connectionEstablished = true;
       };
       
+      // Add specific handler for 'endpoint' events
+      this.eventSource.addEventListener('endpoint', (event) => {
+        console.log('🎯 Received "endpoint" event:');
+        console.log('  - Data:', event.data);
+        console.log('  - Raw event:', event);
+        
+        const sessionId = this.extractSessionId(event.data);
+        
+        if (sessionId) {
+          console.log('🎉 Session ID captured from endpoint event:', sessionId);
+          this.sessionId = sessionId;
+          this.connected = true;
+          
+          // Close SSE connection after getting session ID
+          setTimeout(() => {
+            this.eventSource?.close();
+            resolveOnce(true);
+          }, 100);
+        } else {
+          console.log('⚠️ No session ID found in endpoint event');
+          console.log('  - Tried to extract from:', JSON.stringify(event.data));
+        }
+      });
+      
       this.eventSource.onmessage = (event) => {
-        console.log('📨 SSE message received:', event.data);
+        console.log('📨 SSE message received:');
+        console.log('  - Type:', event.type);
+        console.log('  - Data:', event.data);
+        console.log('  - Raw event:', event);
+        
+        // Also check if there are other event types
+        console.log('  - Event keys:', Object.keys(event));
         
         const sessionId = this.extractSessionId(event.data);
         
@@ -157,6 +187,7 @@ export class InsuranceMCPClient {
           }, 100);
         } else {
           console.log('⚠️ No session ID found in message, waiting for more...');
+          console.log('  - Tried to extract from:', JSON.stringify(event.data));
         }
       };
       
@@ -198,6 +229,8 @@ export class InsuranceMCPClient {
   }
 
   private extractSessionId(data: string): string | null {
+    console.log('🔍 Extracting session ID from:', JSON.stringify(data));
+    
     try {
       // Try parsing as JSON first
       const parsed = JSON.parse(data);
@@ -213,47 +246,67 @@ export class InsuranceMCPClient {
                        parsed.params?.session ||
                        parsed.params?.id;
       
-      if (sessionId) return sessionId;
+      if (sessionId) {
+        console.log('✅ Found session ID in JSON:', sessionId);
+        return sessionId;
+      }
       
       // If endpoint URL format
       if (parsed.endpoint && parsed.endpoint.includes('sessionId=')) {
         try {
           const url = new URL(parsed.endpoint, this.serverUrl);
-          return url.searchParams.get('sessionId');
+          const extractedId = url.searchParams.get('sessionId');
+          if (extractedId) {
+            console.log('✅ Found session ID in JSON endpoint URL:', extractedId);
+            return extractedId;
+          }
         } catch (e) {
           console.warn('Failed to parse endpoint URL:', e);
         }
       }
       
     } catch (err) {
-      console.log('📝 SSE message (non-JSON):', data);
+      console.log('📝 SSE message is not JSON, processing as text...');
       
       // Handle plain text - check if it's a URL path with sessionId
       const text = data.trim();
+      console.log('📝 Processing text:', text);
       
       // Check for URL path format like "/messages?sessionId=uuid"
       if (text.includes('sessionId=')) {
+        console.log('🔍 Found sessionId= in text, extracting...');
+        
+        // First try regex extraction (most reliable)
+        const sessionMatch = text.match(/sessionId=([a-f0-9-]{36})/i);
+        if (sessionMatch) {
+          console.log('✅ Found session ID via regex:', sessionMatch[1]);
+          return sessionMatch[1];
+        }
+        
+        // Fallback: try a broader regex
+        const broadMatch = text.match(/sessionId=([a-f0-9-]+)/i);
+        if (broadMatch) {
+          console.log('✅ Found session ID via broad regex:', broadMatch[1]);
+          return broadMatch[1];
+        }
+        
+        // Try URL parsing as fallback
         try {
           const url = new URL(text, this.serverUrl);
           const sessionId = url.searchParams.get('sessionId');
           if (sessionId) {
-            console.log('🎯 Found session ID in URL path:', sessionId);
+            console.log('✅ Found session ID in URL path:', sessionId);
             return sessionId;
           }
         } catch (e) {
-          // If URL parsing fails, try regex extraction
-          const sessionMatch = text.match(/sessionId=([a-f0-9-]+)/i);
-          if (sessionMatch) {
-            console.log('🎯 Found session ID via regex:', sessionMatch[1]);
-            return sessionMatch[1];
-          }
+          console.warn('Failed to parse as URL:', e);
         }
       }
       
-      // Look for UUID pattern (8-4-4-4-12 characters)
+      // Look for UUID pattern anywhere in the text (8-4-4-4-12 characters)
       const uuidMatch = text.match(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i);
       if (uuidMatch) {
-        console.log('🎯 Found UUID pattern:', uuidMatch[0]);
+        console.log('✅ Found UUID pattern:', uuidMatch[0]);
         return uuidMatch[0];
       }
       
@@ -264,6 +317,7 @@ export class InsuranceMCPClient {
       }
     }
     
+    console.log('❌ No session ID found in data');
     return null;
   }
 
