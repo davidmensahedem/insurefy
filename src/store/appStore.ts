@@ -88,11 +88,14 @@ export const useAppStore = create<AppStore>()(
         })),
 
       updateMessage: (id, updates) =>
-        set((state) => ({
-          messages: state.messages.map((msg) =>
+        set((state) => {
+          console.log('📝 Updating message:', { id, updates });
+          const newMessages = state.messages.map((msg) =>
             msg.id === id ? { ...msg, ...updates } : msg
-          )
-        })),
+          );
+          console.log('📝 Message updated, new state:', newMessages.find(m => m.id === id));
+          return { messages: newMessages };
+        }),
 
       clearMessages: () => set({ messages: [] }),
 
@@ -149,6 +152,7 @@ export const useAppStore = create<AppStore>()(
 
       sendMessage: async (content) => {
         const { addMessage, updateMessage, setLoading, messages } = get();
+        let assistantMessageId: string | null = null;
         
         try {
           setLoading(true);
@@ -163,8 +167,9 @@ export const useAppStore = create<AppStore>()(
           addMessage(userMessage);
 
           // Add loading assistant message
+          assistantMessageId = uuidv4();
           const assistantMessage: ChatMessage = {
-            id: uuidv4(),
+            id: assistantMessageId,
             role: 'assistant',
             content: '',
             timestamp: new Date().toISOString(),
@@ -172,31 +177,50 @@ export const useAppStore = create<AppStore>()(
           };
           addMessage(assistantMessage);
 
+          console.log('🚀 Processing message with LLM and tools...');
+          
           // Process with LLM and tools
           const result = await llmService.processWithTools(content, messages);
+          
+          console.log('✅ LLM processing complete, updating message...', {
+            messageId: assistantMessageId,
+            hasResponse: !!result.response,
+            hasToolCalls: !!(result.toolCalls && result.toolCalls.length > 0)
+          });
 
           // Update assistant message with response
-          updateMessage(assistantMessage.id, {
+          updateMessage(assistantMessageId, {
             content: result.response,
             isLoading: false,
             toolCalls: result.toolCalls,
             sources: result.toolCalls?.map(tc => tc.name)
           });
+          
+          console.log('✅ Message update completed successfully');
 
         } catch (error) {
-          console.error('Send message error:', error);
+          console.error('❌ Send message error:', error);
           
-          // Update with error message
-          const currentMessages = get().messages;
-          const lastMessage = currentMessages[currentMessages.length - 1];
-          if (lastMessage && lastMessage.isLoading) {
-            updateMessage(lastMessage.id, {
+          // Update with error message if we have an assistant message ID
+          if (assistantMessageId) {
+            updateMessage(assistantMessageId, {
               content: 'Sorry, I encountered an error processing your request. Please try again.',
               isLoading: false
             });
+          } else {
+            // Fallback: find and update the last loading message
+            const currentMessages = get().messages;
+            const lastMessage = currentMessages[currentMessages.length - 1];
+            if (lastMessage && lastMessage.isLoading) {
+              updateMessage(lastMessage.id, {
+                content: 'Sorry, I encountered an error processing your request. Please try again.',
+                isLoading: false
+              });
+            }
           }
         } finally {
           setLoading(false);
+          console.log('🏁 Send message process completed, global loading cleared');
         }
       },
 
