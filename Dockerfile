@@ -16,6 +16,16 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Build arguments for Vite environment variables
+ARG VITE_MCP_SERVER_URL
+ARG VITE_APP_ENVIRONMENT=production
+ARG VITE_ENABLE_DEBUG_LOGS=true
+
+# Set environment variables for build
+ENV VITE_MCP_SERVER_URL=$VITE_MCP_SERVER_URL
+ENV VITE_APP_ENVIRONMENT=$VITE_APP_ENVIRONMENT
+ENV VITE_ENABLE_DEBUG_LOGS=$VITE_ENABLE_DEBUG_LOGS
+
 # Build the application
 RUN npm run build
 
