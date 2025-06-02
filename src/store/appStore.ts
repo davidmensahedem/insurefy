@@ -18,7 +18,7 @@ interface AppStore extends AppState {
   setConnectionError: (error: string | null) => void;
   setCapabilities: (capabilities: MCPServerCapabilities) => void;
   
-  addMessage: (message: Omit<ChatMessage, 'id'>) => void;
+  addMessage: (message: Omit<ChatMessage, 'id'> & { id?: string }) => void;
   updateMessage: (id: string, updates: Partial<ChatMessage>) => void;
   clearMessages: () => void;
   
@@ -81,7 +81,7 @@ export const useAppStore = create<AppStore>()(
             ...state.messages,
             {
               ...message,
-              id: uuidv4(),
+              id: message.id || uuidv4(),
               timestamp: message.timestamp || new Date().toISOString()
             }
           ]
